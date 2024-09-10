@@ -3,57 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Números da Mega-Sena</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css">
+    <title>Gerador Inteligente de Números da Mega-Sena</title>
     <style>
-        /* Melhorias no estilo */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #4CAF50, #81C784);
+            color: #ffffff;
             margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
 
         .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            margin: 20px;
+            text-align: center;
+            color: #333;
         }
 
-        .input-section label, .input-section input {
+        h1 {
+            color: #4CAF50;
+            font-size: 26px;
+            margin-bottom: 25px;
+        }
+
+        .input-section, .checkbox-section {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
             display: block;
-            margin: 10px 0;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="number"], input[type="checkbox"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
 
         button {
-            background-color: #28a745;
+            background-color: #4CAF50;
             color: white;
+            padding: 12px 25px;
             border: none;
-            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
         }
 
         button:hover {
-            background-color: #218838;
+            background-color: #45a049;
+        }
+
+        #resultado {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
         }
 
         .info-section {
+            text-align: left;
             margin-top: 20px;
-        }
-
-        canvas {
-            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Gerador de Números da Mega-Sena</h1>
+        <h1>Gerador Inteligente de Números da Mega-Sena</h1>
+        
         <div class="input-section">
             <label for="faixaInicio">Número inicial da faixa preferida:</label>
             <input type="number" id="faixaInicio" value="1" min="1" max="60">
@@ -66,112 +102,69 @@
 
             <label for="numeroFixo">Número fixo (opcional):</label>
             <input type="number" id="numeroFixo" min="1" max="60">
+        </div>
 
-            <label for="aleatorio">Gerar números aleatórios:</label>
-            <input type="checkbox" id="aleatorio">
+        <div class="checkbox-section">
+            <label for="frequentes">Focar em números frequentes de quinas/quadras:</label>
+            <input type="checkbox" id="frequentes">
         </div>
         
         <button onclick="gerarNumeros()">Gerar Números</button>
         
         <h2>Sequência Gerada:</h2>
         <p id="resultado"></p>
-        
-        <div class="info-section">
-            <h2>Último Sorteio:</h2>
-            <p id="ultimoSorteio"></p>
-            <h2>Estatísticas do Resultado:</h2>
-            <p id="estatisticas"></p>
-        </div>
-
-        <!-- Adicione os gráficos aqui -->
-        <canvas id="graficoFrequencia"></canvas>
-        <canvas id="graficoDistribuicao"></canvas>
-        <canvas id="graficoUltimosSorteios"></canvas>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
-        async function obterDadosMegaSena() {
-            try {
-                const response = await fetch('https://loteriascaixa-api.herokuapp.com/api/mega-sena/latest');
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Erro ao obter os dados da Mega-Sena:', error);
-                return null;
-            }
-        }
+        const frequentesQuinaQuadra = [5, 13, 23, 33, 41, 54, 8, 16, 25, 34, 44]; // Exemplo de números frequentes
 
-        async function exibirUltimoSorteio() {
-            const dados = await obterDadosMegaSena();
-            if (dados) {
-                const numeros = dados.dezenas.map(Number);
-                document.getElementById('ultimoSorteio').innerText = `Concurso ${dados.numero_concurso} em ${dados.data_concurso}: ${numeros.join(', ')}`;
-            } else {
-                document.getElementById('ultimoSorteio').innerText = 'Não foi possível obter os dados do último sorteio.';
-            }
-        }
-
-        async function gerarNumeros() {
-            await exibirUltimoSorteio(); // Exibir o último sorteio antes de gerar novos números
-
+        function gerarNumeros() {
             const faixaInicio = parseInt(document.getElementById('faixaInicio').value);
             const faixaFim = parseInt(document.getElementById('faixaFim').value);
             const qtdPares = parseInt(document.getElementById('qtdPares').value);
-            const numeroFixo = parseInt(document.getElementById('numeroFixo').value);
-            const aleatorio = document.getElementById('aleatorio').checked;
+            const numeroFixo = parseInt(document.getElementById('numeroFixo').value) || null;
+            const usarFrequentes = document.getElementById('frequentes').checked;
+            let numeros = [];
 
-            // Validações básicas
-            if (faixaInicio > faixaFim) {
-                alert("O número inicial deve ser menor ou igual ao número final.");
-                return;
-            }
-
-            // Gerar os números da Mega-Sena
-            let numerosGerados = [];
-
-            if (aleatorio) {
-                // Gera números completamente aleatórios
-                while (numerosGerados.length < 6) {
-                    const num = Math.floor(Math.random() * 60) + 1;
-                    if (!numerosGerados.includes(num)) numerosGerados.push(num);
+            if (usarFrequentes) {
+                while (numeros.length < 6) {
+                    const numero = frequentesQuinaQuadra[Math.floor(Math.random() * frequentesQuinaQuadra.length)];
+                    if (!numeros.includes(numero) && numero >= faixaInicio && numero <= faixaFim) {
+                        numeros.push(numero);
+                    }
                 }
             } else {
-                // Gera números com base nos critérios fornecidos
-                let pares = 0, impares = 0;
-                while (numerosGerados.length < 6) {
-                    const num = Math.floor(Math.random() * (faixaFim - faixaInicio + 1)) + faixaInicio;
-                    if (!numerosGerados.includes(num)) {
-                        if (num % 2 === 0 && pares < qtdPares) {
-                            numerosGerados.push(num);
-                            pares++;
-                        } else if (num % 2 !== 0 && impares < (6 - qtdPares)) {
-                            numerosGerados.push(num);
-                            impares++;
-                        }
+                while (numeros.length < 6) {
+                    const numero = Math.floor(Math.random() * (faixaFim - faixaInicio + 1)) + faixaInicio;
+                    if (!numeros.includes(numero)) {
+                        numeros.push(numero);
                     }
                 }
             }
 
-            if (numeroFixo && !numerosGerados.includes(numeroFixo)) {
-                numerosGerados[Math.floor(Math.random() * numerosGerados.length)] = numeroFixo;
+            if (numeroFixo && !numeros.includes(numeroFixo) && numeroFixo >= faixaInicio && numeroFixo <= faixaFim) {
+                numeros.pop();
+                numeros.push(numeroFixo);
             }
 
-            // Exibir os números gerados
-            document.getElementById('resultado').innerText = `Números Gerados: ${numerosGerados.join(', ')}`;
+            let pares = numeros.filter(n => n % 2 === 0);
+            let impares = numeros.filter(n => n % 2 !== 0);
 
-            // Chamar função para calcular estatísticas
-            calcularEstatisticas(numerosGerados);
+            while (pares.length > qtdPares) pares.pop();
+            while (impares.length > (6 - qtdPares)) impares.pop();
+
+            numeros = pares.concat(impares);
+
+            while (numeros.length < 6) {
+                const numero = Math.floor(Math.random() * (faixaFim - faixaInicio + 1)) + faixaInicio;
+                if (!numeros.includes(numero)) {
+                    numeros.push(numero);
+                }
+            }
+
+            const resultado = numeros.sort((a, b) => a - b);
+            document.getElementById('resultado').innerText = resultado.join(', ');
         }
-
-        function calcularEstatisticas(numerosGerados) {
-            // Adicione o código para calcular estatísticas aqui
-            console.log("Calculando estatísticas...");
-        }
-
-        window.onload = () => {
-            exibirUltimoSorteio();
-        };
     </script>
 </body>
 </html>
